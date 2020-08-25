@@ -4,7 +4,10 @@ import com.zhicall.constants.SystemConstants;
 import com.zhicall.factory.create.CodeCreater;
 import com.zhicall.pojo.param.GenerateParam;
 import com.zhicall.pojo.vo.ResultDTO;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +20,7 @@ import javax.validation.Valid;
  * @date 2020/8/25 10:36
  * 生成代码入口
  */
+@Api(tags = "智康自助机自动生成代码接口")
 @RestController
 @RequestMapping("/genereate")
 public class MainController {
@@ -25,12 +29,13 @@ public class MainController {
     private static String writePath = "C:/Users/Administrator/Desktop/code";
 
     /**
-     * 生成局部代码：entity/mapper/dao/service/controller/util
+     * 生成局部代码：entity/mapper/dao/service/controller/util/上述全部文件
      * 根据入参GenerateType枚举类型决定最终生成的类型
      *
      * @param param 入参
      */
-    @RequestMapping("/oneOrAll")
+    @PostMapping(value = "/oneOrAll")
+    @ApiOperation("模块代码生成接口")
     public ResultDTO generateDao(@Valid @RequestBody GenerateParam param) {
         try {
             // 代码输出路径默认处理
@@ -48,21 +53,23 @@ public class MainController {
         }
     }
 
-
     /**
      * 生成全量代码
      *
      * @param param 入参
      */
-    @RequestMapping("/all")
-    public ResultDTO generateAll(@Valid @RequestBody GenerateParam param) {
+    @PostMapping("/all")
+    @ApiOperation("数据库代码生成接口")
+    public ResultDTO generateDB(@Valid @RequestBody GenerateParam param) {
         try {
-            // TODO 局部代码生成(POJO-DAO-SERVICE-UTIL....)
+            // TODO 生成有关DB的自动化代码
             return new ResultDTO(SystemConstants.SUCCESS.getCode(), "操作成功");
         } catch (Exception e) {
             return new ResultDTO(SystemConstants.ERROR.getCode(), "系统异常，请联系管理员");
         }
     }
+
+
 
 
 }
