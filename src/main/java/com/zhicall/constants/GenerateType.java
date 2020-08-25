@@ -3,8 +3,8 @@ package com.zhicall.constants;
 /**
  * @author hebo@zhicall.cn
  * @version 1.0
- * @date 2020/8/25 0025 13:17
- * @Desc
+ * @date 2020/8/25 13:17
+ * @Desc 生成类型枚举值
  */
 public enum GenerateType {
 
