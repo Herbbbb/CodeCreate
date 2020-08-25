@@ -1,0 +1,25 @@
+package ${package}systemConstants;
+
+import ${entityPackage}.util.propertyUtil.PropertyUtil;
+import org.springframework.stereotype.Component;
+
+/**
+ * 系统常量
+ */
+@Component
+public class SystemConstants {
+
+    /** 配置文件元素 **/
+    public static final String SERVICE_PUBLIC_URL = PropertyUtil.getProperty("service.public.url");
+
+    /** 固定元素 **/
+    public static final String NAME_SPACE = "http://tempuri.org/";
+
+    /** Http返回code **/
+    public static final String SUCCESS_CODE = "200";
+
+    public static final String FAIL_CODE = "-1";
+
+    public static final String error_CODE = "500";
+
+}

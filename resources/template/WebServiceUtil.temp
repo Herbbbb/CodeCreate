@@ -1,0 +1,180 @@
+package ${package}webServiceUtil;
+
+import cn.hutool.core.util.XmlUtil;
+import cn.hutool.http.webservice.SoapClient;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang.StringUtils;
+import ${package}logFactory.LogFactory;
+import org.slf4j.Logger;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * 发送WebService请求工具类
+ * 核心是借助SoapClient工具类实现soap的发送与接收
+ * @author ${author}
+ */
+public class WebServiceUtil {
+
+    private static final ObjectMapper jackson = new ObjectMapper();
+
+    /**
+     * 请求并解析响应
+     *
+     * @param headParam1 xml head参数1
+     * @param headParam2 xml head参数2(多个则追加形参个数)
+     * @param bodyParam  xml body参数
+     * @param logType    日志类型
+     * @return
+     */
+    public static Map<String, Object> sendRequestAndParseResult(String headParam1, String headParam2, Map<String, Object> bodyParam, String logType) {
+
+        // 【工厂模式】区分不同业务的日志文件
+        Logger logger = (Logger) LogFactory.allLogMap.get(logType);
+        Map<String, Object> resultMap;
+
+        String body = getRequestBody(headParam1, headParam2, bodyParam);
+        logger.info("【开始请求】请求参数: headParam1:{}, headParam2:{}, body:{}", headParam1, headParam2, body);
+
+        long startTime = System.currentTimeMillis();
+        SoapClient client = SoapClient
+                // 对应WebService接口地址，asmx后加[?wsdl]，浏览器访问会出现接口文档
+                // 建议变更为常量类SystemConstants读取配置文件获取
+                .create("http://39.11.175.68:9081/test.asmx")
+                // 方法名称为WebService对应的方法名称，并非固定
+                .setMethod("method")
+                // 参数的key为WebService对应的方法的入参名称，并非固定
+                .setParam("xmlString", body, true);
+        String hisResponseStr = client.send(true);
+        long endTime = System.currentTimeMillis();
+        logger.info("【结束请求HIS原始报文】原始返回BODY:" + hisResponseStr);
+
+        if (StringUtils.isBlank(hisResponseStr)) {
+            logger.info("请求HIS报文为空，此次请求结束");
+            resultMap = new HashMap<>(1);
+            resultMap.put("msg", "HIS数据为空");
+            return resultMap;
+        }
+        // 结果截取并返回,部分数据不需要返回做截取处理
+        hisResponseStr = hisResponseStr.substring(
+                hisResponseStr.indexOf("<" + serviceId + "Result>"),
+                hisResponseStr.indexOf("</" + serviceId + "Result>"))
+                .replace("&lt;", "<")
+                .replace("&gt;", ">");
+        logger.info("【结束请求HIS】耗时:{}ms, 截取返回BODY:{}", (endTime - startTime), hisResponseStr);
+        if ((endTime - startTime) > 5000) {
+            errorLog.error("【HIS请求超过5S】请求参数: headParam1:{}, headParam2:{}, body:{}", headParam1, headParam2, body);
+        }
+        resultMap = XmlUtil.xmlToMap(hisResponseStr);
+        return resultMap;
+    }
+
+    /**
+     * 请求体填充
+     *
+     * @param headParam1 xml head参数1
+     * @param headParam2 xml head参数2(多个则追加形参个数)
+     * @param <T>        xml body参数
+     * @return
+     */
+    private static <T> String getRequestBody(String headParam1, String headParam2, T requestDo) {
+
+        PublicHead head = new PublicHead();
+
+        /**
+         * <?xml version="1.0" encoding="gbk"?>
+         * <root>
+         * 	<head>
+         * 		<headParam1>	20110301	</headParam1>
+         * 		<headParam2>	20110301	</headParam2>
+         * 		<headParam3>	20110301	</headParam3>
+         * 	</head>
+         * </root>
+         */
+
+        // 必输
+        head.setHeadParam1(headParam1);
+        head.setHeadParam2(headParam2);
+        // 非必输
+        String headParam3 = null;
+        head.setHeadParam3(headParam3);
+
+        SourceRequestDo<T> sourceRequestDo = new SourceRequestDo<>();
+        sourceRequestDo.setHead(head);
+        sourceRequestDo.setBody(requestDo);
+
+        /**
+         * mapToXmlStr第二个参数标识xml根节点名称
+         * 如上举例是root这里就传入root，如果是Element，就传入Element等
+         */
+        String result = XmlUtil.mapToXmlStr(jackson.convertValue(sourceRequestDo, Map.class), "root");
+        return result;
+    }
+}
+
+// 在该工具被使用时，这个类建议抽出放在pojo/model/entity/vo层
+class PublicHead {
+
+    // 通过该注解声明Jackson转换时候的标签名称，区分大小写
+    @JsonProperty("headParam1")
+    private String headParam1;
+
+    @JsonProperty("headParam2")
+    private String headParam2;
+
+    @JsonProperty("headParam3")
+    private String headParam3;
+
+    public String getHeadParam1() {
+        return headParam1;
+    }
+
+    public void setHeadParam1(String headParam1) {
+        this.headParam1 = headParam1;
+    }
+
+    public String getHeadParam2() {
+        return headParam2;
+    }
+
+    public void setHeadParam2(String headParam2) {
+        this.headParam2 = headParam2;
+    }
+
+    public String getHeadParam3() {
+        return headParam3;
+    }
+
+    public void setHeadParam3(String headParam3) {
+        this.headParam3 = headParam3;
+    }
+}
+
+// 在该工具被使用时，这个类建议抽出放在pojo/model/vo层
+class SourceRequestDo<T> {
+
+    // 通过该注解声明Jackson转换时候的标签名称，区分大小写
+    @JsonProperty("head")
+    private PublicHead head;
+
+    @JsonProperty("body")
+    private T body;
+
+    public PublicHead getHead() {
+        return head;
+    }
+
+    public void setHead(PublicHead head) {
+        this.head = head;
+    }
+
+    public T getBody() {
+        return body;
+    }
+
+    public void setBody(T body) {
+        this.body = body;
+    }
+}

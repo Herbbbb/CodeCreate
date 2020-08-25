@@ -1,0 +1,37 @@
+package ${package}${classNameL}Service.customInterface;
+
+import java.util.*;
+import java.util.Map.Entry;
+
+import ${entityPackage}${classNameL}.${className};
+
+/**
+ * Service方法接口
+ * 
+ * @author ${author}
+ * 
+ */
+public interface I${className}Service {
+
+	//select
+	${className} getByID(String ID);
+	List<${className}> getByCondition(String condition);
+	int getCountByCondition(String condition);
+	Map<String,Object> findByID(String[] properties, String id);
+	List<Map<String,Object>> findByCondition(String[] properties, String condition);
+	
+	//update
+	int updateByID(${className} ${classNameL}, String ID);
+	int updateByCondition(${className} ${classNameL}, String condition);
+	int updatePropByID(Set<Entry<String, Object>> prop, String ID);
+	int updatePropByCondition(Set<Entry<String, Object>> prop, String condition);
+	
+	//delete
+	int deleteByID(String ID);
+	int deleteByCondition(String condition);
+	int delete${className}ByIDs(String[] IDs);
+	
+	//save
+	int save(${className} ${classNameL});
+	int save${className}s(${className}[] ${classNameL}s);
+}

@@ -1,0 +1,283 @@
+package ${package}socketUtil;
+
+import cn.hutool.core.util.XmlUtil;
+import ${package}logFactory.LogFactory;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+
+import java.io.*;
+import java.net.Socket;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * @author hebo@zhicall.cn
+ * @version 1.0
+ * @date 2020/8/3 10:52
+ * Socket工具类，TCP连接形式
+ * UDP：快，但不保证顺序，可能丢包，数据结构简单，适合场景：直播，视频聊天
+ * TCP：保证顺序(基于序列号)，不丢包(基于头标识+快速重传机制)[非绝对]，适合场景：文件传输
+ */
+public class SocketUtil extends LogFactory {
+
+    /**
+     * 发送请求，解析结果
+     *
+     * @param headParam1     head参数1
+     * @param headParam2     head参数2
+     * @param bodyParam      body数据
+     * @param logType        日志类型
+     * @return
+     */
+    public static Map<String, Object> sendRequestAndParseResult(String headParam1, String headParam2, Map<String, Object> bodyParam, String logType) {
+
+        // 类似工厂模式，设置默认日志输出文件
+        if (null == logType) {
+            logType = "appointLog";
+        }
+        Logger logger = (Logger) LogFactory.allLogMap.get(logType);
+        Map<String, Object> resultMap;
+
+        String xmlContent = getRequestBody(headParam1, headParam2, bodyParam);
+
+        long startTime = System.currentTimeMillis();
+        String responseStr = sendSocket(xmlContent, logType);
+        long endTime = System.currentTimeMillis();
+
+        // 为空直接返回
+        if (StringUtils.isBlank(responseStr)) {
+            logger.info("请求HIS报文为空，此次请求结束");
+            resultMap = new HashMap<>(1);
+            resultMap.put("msg", "HIS数据为空");
+            return resultMap;
+        }
+
+        // 转换结果并返回,部分数据不需要返回做截取处理
+        responseStr = responseStr.substring(responseStr.indexOf("<Data>"), responseStr.indexOf("</Data>"))
+                .replace("&lt;", "<")
+                .replace("&gt;", ">");
+
+        logger.info("【结束请求HIS】耗时:{}ms, 截取返回BODY:{}", (endTime - startTime), responseStr);
+        if ((endTime - startTime) > 5000) {
+            errorLog.error("【HIS请求超过5S】总耗时:{}ms,请求原始报文:{}", (endTime - startTime), xmlContent);
+        }
+        resultMap = XmlUtil.xmlToMap(responseStr);
+        return resultMap;
+    }
+
+    /**
+     * Socket-TCP发送请求
+     *
+     * @param xmlContent 原始文本内容
+     * @param logType    日志类型
+     * @return           服务端响应内容
+     */
+    public static String sendSocket(String xmlContent, String logType) {
+
+        OutputStream os = null;
+        PrintWriter pw = null;
+        InputStream is = null;
+        InputStreamReader ir = null;
+        BufferedReader br = null;
+        Socket socket = null;
+        try {
+            Logger logger = (Logger) LogFactory.allLogMap.get(logType);
+            // 创建连接
+            // 建议变更为常量类SystemConstants读取配置文件获取
+            socket = new Socket("SERVICE_URL", "SERVICE_PORT");
+            logger.info("【SOCKET通信】创建通信, IP:{}, 端口:{}", "SERVICE_URL", "SERVICE_PORT");
+            // 要发送给服务器的信息
+            os = socket.getOutputStream();
+            pw = new PrintWriter(os);
+
+            /**
+             * 增加报文长度，不够前置补0，部分不需要的场景可以直接删除此处理方法
+             * 此时xml变成如：00123<xml>...<xml>
+             */
+            xmlContent = fillLength(xmlContent);
+            logger.info("【SOCKET通信】客户端发送:{}", xmlContent);
+
+            pw.write(xmlContent);
+            pw.flush();
+
+            // 解决TCP延迟
+            Thread.sleep(200);
+            // 通知服务端写完毕(也可以通过最后write一个换行符但之前尝试不生效)
+            socket.shutdownOutput();
+
+            // 从服务器接收信息
+            is = socket.getInputStream();
+            ir = new InputStreamReader(is);
+            br = new BufferedReader(ir);
+            String info;
+            StringBuilder result = new StringBuilder();
+
+            while ((info = br.readLine()) != null) {
+                  // 判断连接是否断开，在服务端不会主动断开时可以不用
+//                if (is.available() <= 0) {
+//                    // 连接已断开
+//                    logger.info("【SOCKET通信】服务端断开连接，处理终止");
+//                    break;
+//                }
+                result.append(info);
+            }
+            logger.info("【SOCKET通信】服务器响应:{}", result.toString());
+            return result.toString();
+        } catch (Exception e) {
+            errorLog.error("【SOCKET通信】系统异常:{}", e);
+        } finally {
+            // 流关闭
+            try {
+                if (null != br) {
+                    br.close();
+                }
+                if (null != ir) {
+                    ir.close();
+                }
+                if (null != is) {
+                    is.close();
+                }
+                if (null != os) {
+                    os.close();
+                }
+                if (null != pw) {
+                    pw.close();
+                }
+                if (null != socket) {
+                    socket.close();
+                }
+            } catch (IOException e) {
+                errorLog.error("【SOCKET通信】IO关闭异常:{}", e);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 增加报文长度，不够前置补0，长度5位如：00159，表示该xml总长度159
+     *
+     * @param xmlContent
+     */
+    private static String fillLength(String xmlContent) {
+        int xmlLength = xmlContent.length();
+        int length = String.valueOf(xmlLength).length();
+        StringBuffer str = new StringBuffer();
+        if (length < 5) {
+            int diff = 5 - length;
+            for (int i = 0; i < diff; i++) {
+                str.append("0");
+            }
+        }
+        xmlContent = str + String.valueOf(xmlLength) + xmlContent;
+        return xmlContent;
+    }
+
+    /**
+     * 请求体填充
+     *
+     * @param headParam1 xml head参数1
+     * @param headParam2 xml head参数2(多个则追加形参个数)
+     * @param <T>        xml body参数
+     * @return
+     */
+    private static <T> String getRequestBody(String headParam1, String headParam2, T requestDo) {
+
+        PublicHead head = new PublicHead();
+
+        /**
+         * <?xml version="1.0" encoding="gbk"?>
+         * <root>
+         * 	<head>
+         * 		<headParam1>	20110301	</headParam1>
+         * 		<headParam2>	20110301	</headParam2>
+         * 		<headParam3>	20110301	</headParam3>
+         * 	</head>
+         * </root>
+         */
+
+        // 必输
+        head.setHeadParam1(headParam1);
+        head.setHeadParam2(headParam2);
+        // 非必输
+        String headParam3 = null;
+        head.setHeadParam3(headParam3);
+
+        SourceRequestDo<T> sourceRequestDo = new SourceRequestDo<>();
+        sourceRequestDo.setHead(head);
+        sourceRequestDo.setBody(requestDo);
+
+        /**
+         * mapToXmlStr第二个参数标识xml根节点名称
+         * 如上举例是root这里就传入root，如果是Element，就传入Element
+         */
+        String result = XmlUtil.mapToXmlStr(jackson.convertValue(sourceRequestDo, Map.class), "root");
+        return result;
+    }
+}
+
+
+// 在该工具被使用时，这个类建议抽出放在pojo/model/entity/vo层
+class PublicHead {
+
+    // 通过该注解声明Jackson转换时候的标签名称，区分大小写
+    @JsonProperty("headParam1")
+    private String headParam1;
+
+    @JsonProperty("headParam2")
+    private String headParam2;
+
+    @JsonProperty("headParam3")
+    private String headParam3;
+
+    public String getHeadParam1() {
+        return headParam1;
+    }
+
+    public void setHeadParam1(String headParam1) {
+        this.headParam1 = headParam1;
+    }
+
+    public String getHeadParam2() {
+        return headParam2;
+    }
+
+    public void setHeadParam2(String headParam2) {
+        this.headParam2 = headParam2;
+    }
+
+    public String getHeadParam3() {
+        return headParam3;
+    }
+
+    public void setHeadParam3(String headParam3) {
+        this.headParam3 = headParam3;
+    }
+}
+
+// 在该工具被使用时，这个类建议抽出放在pojo/model/vo层
+class SourceRequestDo<T> {
+
+    // 通过该注解声明Jackson转换时候的标签名称，区分大小写
+    @JsonProperty("head")
+    private PublicHead head;
+
+    @JsonProperty("body")
+    private T body;
+
+    public PublicHead getHead() {
+        return head;
+    }
+
+    public void setHead(PublicHead head) {
+        this.head = head;
+    }
+
+    public T getBody() {
+        return body;
+    }
+
+    public void setBody(T body) {
+        this.body = body;
+    }
+}

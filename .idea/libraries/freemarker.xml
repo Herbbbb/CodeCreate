@@ -1,0 +1,15 @@
+<component name="libraryTable">
+  <library name="freemarker">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/resources/lib/freemarker.jar!/" />
+      <root url="jar://$PROJECT_DIR$/resources/lib/poi-3.10-FINAL-20140208.jar!/" />
+      <root url="jar://$PROJECT_DIR$/resources/lib/poi-examples-3.10-FINAL-20140208.jar!/" />
+      <root url="jar://$PROJECT_DIR$/resources/lib/poi-excelant-3.10-FINAL-20140208.jar!/" />
+      <root url="jar://$PROJECT_DIR$/resources/lib/poi-ooxml-3.10-FINAL-20140208.jar!/" />
+      <root url="jar://$PROJECT_DIR$/resources/lib/poi-ooxml-schemas-3.10-FINAL-20140208.jar!/" />
+      <root url="jar://$PROJECT_DIR$/resources/lib/poi-scratchpad-3.10-FINAL-20140208.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

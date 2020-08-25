@@ -1,0 +1,45 @@
+package ${package}logFactory;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * @author ${author}
+ * @version 1.0
+ * @date 2020/8/21 10:02
+ * 日志工厂，类似于单例模式-饿汉式实现
+ * [优点：实现简单，线程安全；缺点：易浪费内存，产生垃圾对象]
+ */
+public class LogFactory {
+
+    // 预约取号
+    public static Logger appointLog = LoggerFactory.getLogger("appoint_log");
+
+    // 自助缴费
+    public static Logger chargeLog = LoggerFactory.getLogger("charge_log");
+
+    // 当日挂号
+    public static Logger expertLog = LoggerFactory.getLogger("expert_log");
+
+    // HIS内部Exe调用
+    public static Logger hisLog = LoggerFactory.getLogger("his_log_log");
+
+    // 错误日志
+    public static Logger errorLog = LoggerFactory.getLogger("error_log");
+
+    // 静态存储所有日志，大小为当前个数
+    public static Map allLogMap = new HashMap<>(5);
+
+    // 静态模块加载
+    static {
+        allLogMap.put("appointLog", appointLog);
+        allLogMap.put("chargeLog", chargeLog);
+        allLogMap.put("expertLog", expertLog);
+        allLogMap.put("hisLog", hisLog);
+        allLogMap.put("errorLog", errorLog);
+    }
+
+}
