@@ -29,6 +29,6 @@ public class GenerateParam {
     private String author;
 
     // 生成类型
-    @NotBlank(message = "生成类型不能为空")
+//    @NotBlank(message = "生成类型不能为空")
     private GenerateType generateType;
 }

@@ -22,6 +22,7 @@ import com.zhicall.factory.fileReader.wordReader.WordReader;
 import com.zhicall.factory.pathSetting.PathSetting;
 import com.zhicall.pojo.param.GenerateParam;
 import freemarker.template.TemplateException;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ import java.util.List;
  * @version 1.0
  * @date 2020/8/4 11:16
  */
+@Slf4j
 public class CodeCreater {
 
     /**
@@ -50,7 +52,14 @@ public class CodeCreater {
             entity.setEntityName(param.getEntityName());
             List<Field> fields = new ArrayList<>();
             entity.setFields(fields);
+
+            long startTime = System.currentTimeMillis();
+            log.info("【" + param.getGenerateType() + "】" + "类型创建开始");
             createTask(entity, param.getGenerateType());
+
+            long endTime = System.currentTimeMillis();
+            log.info("【" + param.getGenerateType() + "】" + "类型创建结束，耗时：" + (endTime - startTime) + "ms");
+
             return true;
         } catch (Exception e) {
             e.printStackTrace();

@@ -6,6 +6,7 @@ import com.zhicall.factory.entity.Field;
 import com.zhicall.factory.entity.FieldType;
 import com.zhicall.factory.pathSetting.PathSetting;
 import com.zhicall.factory.stringCaseUtil.StringCaseUtil;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,6 +20,7 @@ import java.util.Map;
  * @version 1.0
  * @date 2020/8/4 13:11
  */
+@Slf4j
 public class EntityCreater extends BaseCreater {
 
 	public EntityCreater() {
@@ -30,9 +32,14 @@ public class EntityCreater extends BaseCreater {
 	@Override
 	public void executeCreateTask(Entity entity) {
 		String className = StringCaseUtil.upcaseFirstChar(entity.getEntityName());
+
+		log.info("【" + className + "】" + "创建开始");
 		createFile(className);
+
+        log.info("【" + className + "】" + "开始填充");
 		fillData(className, entity);
-		System.out.println( "[" + className + "]创建完成");
+
+        log.info("【" + className + "】" + "创建完成");
 	}
 
 	@Override

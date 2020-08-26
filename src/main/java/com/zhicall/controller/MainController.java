@@ -6,6 +6,7 @@ import com.zhicall.pojo.param.GenerateParam;
 import com.zhicall.pojo.vo.ResultDTO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,9 +21,10 @@ import javax.validation.Valid;
  * @date 2020/8/25 10:36
  * 生成代码入口
  */
-@Api(tags = "智康自助机自动生成代码接口")
+@Slf4j
 @RestController
 @RequestMapping("/genereate")
+@Api(tags = "智康自助机自动生成代码接口")
 public class MainController {
 
     // 默认输出路径为桌面code文件夹
@@ -38,8 +40,10 @@ public class MainController {
     @ApiOperation("模块代码生成接口")
     public ResultDTO generateDao(@Valid @RequestBody GenerateParam param) {
         try {
+            log.info("【入参】" + param);
             // 代码输出路径默认处理
             String outputPath = StringUtils.isEmpty(param.getWritePath()) ? writePath : param.getWritePath();
+            log.info("输出路径：" + outputPath);
 
             // 生成对应场景类型的局部代码
             boolean ifSuccess = CodeCreater.StartCreate(outputPath, param);
@@ -49,6 +53,7 @@ public class MainController {
             }
             return new ResultDTO(SystemConstants.FAIL.getCode(), "操作失败");
         } catch (Exception e) {
+            log.error("系统错误:{}", e);
             return new ResultDTO(SystemConstants.ERROR.getCode(), "系统异常，请联系管理员");
         }
     }
